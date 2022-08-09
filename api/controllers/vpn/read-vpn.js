@@ -14,8 +14,8 @@ module.exports = {
     //Paths
     const swl = "\r\n";
     const pathLogUsers =
-      "C:/Users/Mami/Desktop/Carlos/Github/VPN-sails/status.log"; //"/var/log/openvpn/status.log"
-    const pathAllUsers = "C:/Users/Mami/Desktop/index.txt"; //"/etc/openvpn/easy-rsa/pki/index.txt"
+      "../../../status.log"; //"/var/log/openvpn/status.log"
+    const pathAllUsers = "../../../index.txt"; //"/etc/openvpn/easy-rsa/pki/index.txt"
 
     //init object
     let oData = { data: [], date: "" };
