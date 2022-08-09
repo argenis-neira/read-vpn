@@ -14,88 +14,116 @@ module.exports = {
     //Paths
     const swl = "\r\n";
     const pathLogUsers =
-      "../../../status.log" //"/var/log/openvpn/status.log"
-    const pathAllUsers = "../../../index.txt"; //"/etc/openvpn/easy-rsa/pki/index.txt"
+      "C:/Users/Argenis/Desktop/Argenis/Projects/sails/vpn-read/status.log" //"/var/log/openvpn/status.log"
+    const pathAllUsers = "C:/Users/Argenis/Desktop/Argenis/Projects/sails/vpn-read/index.txt"; //"/etc/openvpn/easy-rsa/pki/index.txt"
 
-    //init object
-    let oData = { data: [], date: "" };
+    //function
+    let temp = fs.readFileSync(pathLogUsers, "utf-8").split(swl);
+    //console.log(temp);
+    var odata = { data: [], date: "" };
+    odata.date = temp[1].split(",")[1];
+    const irt = temp.indexOf("ROUTING TABLE");
 
-    //Status LOG
-    const uLog = fs.readFileSync(pathLogUsers, "utf-8");
-    const linesULog = uLog.split(swl);
+    //para validar apellidos como "De La Cruz"
+    const options = ["bluelabel", "mib", "lu", "panama", "vpn"];
+    for (let i = 3; i < irt; i++) {
+      let arr = temp[i].split(",");
+      let name = arr[0].split("-")[0];
+      if (arr[0].split("-")[0] === "UNDEF") continue;
 
-    oData.date = linesULog[1].split(",")[1];
-    const half = linesULog.indexOf("ROUTING TABLE");
-
-    let userLog1 = linesULog.slice(3, half);
-    let uConnected = [];
-    for (let i = 0; i < userLog1.length; i++) {
-      if (userLog1[i].split(",")[0] === "UNDEF") continue;
-      uConnected.push({
-        user: userLog1[i].split(",")[0],
-        restData: userLog1[i].split(",").splice(1),
-      });
-    }
-    console.log(uConnected);
-
-    let userLog2 = linesULog.slice(half + 2, linesULog.length - 4);
-    console.log(uConnected.length, userLog2.length);
-
-    //All USERS
-    const users = fs.readFileSync(pathAllUsers, "utf-8");
-    const linesUser = users.split(swl);
-
-    //building object
-    let total = 0;
-    for (let i = 1; i < linesUser.length; i++) {
-      let elem = linesUser[i].split(/\s+/);
-      if (elem[0] != "V") continue;
-      //check every single one
-      let user = elem[4].split("=")[1];
-
-      let name,
-        lastName,
-        realAddress,
-        bytesReceived,
-        bytesSent,
-        connectedSince,
-        virtualAddress,
-        lastRef = "";
-      let isConnected = false;
-
-      let uMatch = uConnected.find((item) => item.user == user);
-      if (uMatch) {
-        name = user;
-        lastName = user;
-        isConnected = true;
-        realAddress = uMatch.restData[0];
-        bytesReceived = uMatch.restData[1];
-        bytesSent = uMatch.restData[2];
-        connectedSince = uMatch[3];
+      let arrName = arr[0].split("-");
+      //console.log(arrName)
+      let lastName = "";
+      if (arrName[0] === "UNDEF") lastName = "UNDEF";
+      else {
+        lastName = arrName[1].charAt(0).toUpperCase() + arrName[1].slice(1);
+        for (let j = 2; j < arrName.length; j++) {
+          if (options.includes(arrName[j])) break;
+          lastName =
+            lastName +
+            " " +
+            arrName[j].charAt(0).toUpperCase() +
+            arrName[j].slice(1);
+        }
       }
 
-      //init object
-      let oUser = {
+      let oarr = {
         userName: {
-          commonName: user,
-          name,
+          commonName: arr[0],
+          name: name.charAt(0).toUpperCase() + name.slice(1),
           lastName,
         },
-        isConnected,
-        realAddress,
-        bytesReceived,
-        bytesSent,
-        connectedSince,
-        virtualAddress,
-        lastRef,
+        isConnected: true,
+        realAddress: arr[1],
+        bytesReceived: arr[2],
+        bytesSent: arr[3],
+        connectedSince: arr[4],
+        virtualAddress: "",
+        lastRef: "",
       };
-
-      oData.data.push(oUser);
-
-      //total++;
+      odata.data.push(oarr);
     }
-    console.log(total);
 
-    return oData;
+    let total = 0;
+    for (let i = irt + 2; i < temp.length - 4; i++) {
+      let arr = temp[i].split(",");
+      if (arr[1] === "UNDEF") continue;
+      total++;
+      var oselect = odata.data.find(
+        (item) =>
+          item.userName.commonName === arr[1] && item.realAddress === arr[2]
+      );
+      oselect.virtualAddress = arr[0];
+      oselect.lastRef = arr[3];
+    }
+
+    //setMyValue(JSON.stringify(odata));
+
+    console.log("Conected users: ", total)
+    //console.log(odata);
+
+    //For Disconnected Users
+    let totalConnected = 0;
+    let uDiscon = fs.readFileSync(pathAllUsers, "utf-8").split(swl);
+    for (let i = 1; i < uDiscon.length; i++) {
+      let elem = uDiscon[i].split(/\s+/)
+      if (elem[0] != "V") continue;
+      totalConnected++;
+      let commonName = elem[4].split("=")[1]
+      let uMatch = odata.data.find((item) => item.userName.commonName == commonName)
+      if (!uMatch) {
+        let arrName = commonName.split("-")
+        let name = arrName[0]
+        let lastName = arrName[1].charAt(0).toUpperCase() + arrName[1].slice(1)
+        let words = arrName
+        for (let j = 2; j < words.length; j++) {
+          if (options.includes(words[j])) break;
+          lastName =
+            lastName +
+            " " +
+            words[j].charAt(0).toUpperCase() +
+            words[j].slice(1);
+        }
+        let oarr = {
+          userName: {
+            commonName,
+            name: name.charAt(0).toUpperCase() + name.slice(1),
+            lastName,
+          },
+          isConnected: false,
+          realAddress: "",
+          bytesReceived: "",
+          bytesSent: "",
+          connectedSince: "",
+          virtualAddress: "",
+          lastRef: "",
+        };
+        odata.data.push(oarr);
+      }
+    }
+    console.log("Total Users ", totalConnected);
+
+    // All done.
+    return odata;
   },
 };

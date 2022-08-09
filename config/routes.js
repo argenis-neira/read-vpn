@@ -10,5 +10,6 @@
 
 module.exports.routes = {
 
+    'GET /api/v1/vpn': { action: "vpn/read-vpn" }
 
 };
