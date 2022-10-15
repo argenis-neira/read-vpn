@@ -10,6 +10,17 @@
 
 module.exports.routes = {
 
-    'GET /api/v1/vpn': { action: "vpn/read-vpn" }
+    'GET /api/v1/vpn': { action: "vpn/read-vpn" },
+
+    'POST /api/v1/findFile': { action: "files-handle/receive-file" },
+
+    'POST /api/v1/uploadFile': {
+        action: "files-handle/upload-file",
+        // cors: {
+        //     allRoutes: true,
+        //     allowOrigins: '*',
+        //     allowCredentials: false
+        // }
+    }
 
 };
